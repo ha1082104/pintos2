@@ -146,7 +146,7 @@ int thread_get_load_avg (void);
 
 
 /* 01 ================================== */
-//struct list sleep_wait_list;
+bool priority_left_high(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
 /* ===================================== */
 
 #endif /* threads/thread.h */

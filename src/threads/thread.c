@@ -111,18 +111,14 @@ thread_init (void)
 void
 thread_start (void) 
 {
-  printf("Daegeun debug : [thread_start] enter\n");
   /* Create the idle thread. */
   struct semaphore idle_started;
   sema_init (&idle_started, 0);
   thread_create ("idle", PRI_MIN, idle, &idle_started);
-  printf("Daegeun debug : [thread_start] <1>\n");
   /* Start preemptive thread scheduling. */
   intr_enable ();
-  printf("Daegeun debug : [trhead_start] <2>\n");
   /* Wait for the idle thread to initialize idle_thread. */
   sema_down (&idle_started);
-  printf("Daegeun debug : [thread_start] pass\n");
 }
 
 /* Called by the timer interrupt handler at each timer tick.
@@ -265,37 +261,39 @@ void
 thread_unblock (struct thread *t) 
 {
   enum intr_level old_level;
+  struct thread *cur = thread_current();
 
   ASSERT (is_thread (t));
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  /* temp ===================== */
-  printf("Daegeun debug : [thread_unblock] current thread(name : %s)'s priority : %d\n", thread_current()->name, thread_current()->priority);
-  printf("Daegeun debug : [thread_unblock] unblock thread(name : %s)'s priority : %d\n", t->name, t->priority);
-  /* ========================== */
 
   /* 01 ======================= */
-  /*if ((thread_current() -> priority)<(t->priority)){ 
-	  printf("Daegeun debug : [thread_unblock] if statement.current thread  is : %s, argument thread is : %s\n", thread_current()->name, t->name);
+  if ((cur!=idle_thread)&&(cur -> priority)<(t->priority)){ 
 	  list_push_front(&ready_list, &t->elem);
-	  printf("Daegeun debug : [thread_unblock] {1} after argument thread is push front of ready list\n");
 	  t->status = THREAD_READY;
-	  printf("Daegeun debug : [thread_unblock] {2} before thread_yield\n");
 	  thread_yield();
-	  printf("Daegeun debug : [thread_unblock] {3} after thread_yield\n");
 	  intr_set_level(old_level);
-	  //thread_yield();
   }
-  else{
+/*  else if (cur==idle_thread){
+	  list_push_back(&ready_list, &t->elem);
+	  t->status = THREAD_READY;
+	  intr_set_level(old_level);
+  }
+*/
+  else {
 	  list_insert_ordered(&ready_list, &t->elem, priority_left_high, NULL);
 	  t->status = THREAD_READY;
 	  intr_set_level(old_level);
-  }*/
+  }
   /* ========================== */	  
-  list_push_back (&ready_list, &t->elem);
+
+  /* ===========original ================= */
+/*  list_push_back (&ready_list, &t->elem);
   t->status = THREAD_READY;
   intr_set_level (old_level);
+  */
+  /* ===================================== */
 }
 
 /* Returns the name of the running thread. */
@@ -357,7 +355,6 @@ thread_exit (void)
 void
 thread_yield (void) 
 {
-  //printf("Daegeun debug : [thread_yield] '%s' enter\n", thread_current()->name);
   struct thread *cur = thread_current ();
   enum intr_level old_level;
   
@@ -365,11 +362,14 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread) 
-    list_push_back (&ready_list, &cur->elem);
+	  /* 01 ================== */
+	  list_insert_ordered(&ready_list, &cur->elem, priority_left_high, NULL);
+	  /* ===================== */
+  /*===========original============*/
+//    list_push_back (&ready_list, &cur->elem);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
-  //printf("Daegeun debug : [thread_yield] '%s' pass\n", thread_current()->name);
 }
 
 /* Invoke function 'func' on all threads, passing along 'aux'.

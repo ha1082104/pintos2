@@ -31,21 +31,9 @@ static void real_time_sleep (int64_t num, int32_t denom);
 static void real_time_delay (int64_t num, int32_t denom);
 
 
-/* 01 ver2 ====================== */
+/* 01 =========================== */
 struct list sleep_wait_list;
 /* ============================== */
-
-
-/* 01 ============================= */
-/* struct for waiting list in sleep */
-/*static struct sleep_state
-{
-	struct thread* t;
-	int64_t wakeup_ticks;
-	struct list_elem sleep_elem;
-};*/
-/* ================================ */
-
 
 /* Sets up the timer to interrupt TIMER_FREQ times per second,
    and registers the corresponding interrupt. */
@@ -120,10 +108,9 @@ timer_sleep (int64_t ticks)
 
   ASSERT (intr_get_level () == INTR_ON);
 
-
-  /*while(timer_elapsed(start)<ticks)
+/*
+  while(timer_elapsed(start)<ticks)
 	  thread_yield();*/
-
   /* 01 ============================= */
   /*old_level = intr_disable();
   go_to_sleep.t = thread_current();
@@ -234,24 +221,25 @@ timer_interrupt (struct intr_frame *args UNUSED)
   /* 01 new ======================== */
   struct list_elem *e;
   struct thread *t;
+  enum intr_level old_level;
+
+//  old_level = intr_disable();
+
   ticks++;
 
  for (e = list_begin (&sleep_wait_list); e != list_end(&sleep_wait_list); e = list_next(e)){
 	  t = list_entry(e, struct thread, sleep_elem);
 	  if(t->wakeup_ticks <= timer_ticks()){
+		  
 		  list_remove(e);
 		  thread_unblock(t);
 	  }
   }
+// intr_set_level(old_level);
   /* =============================== */
 
 
-//  ticks++;
   thread_tick ();
-
-  /* 01 ver 2 ========================= */
- // printf("size of sleep_wait_list : %d\n", list_size(&sleep_wait_list));
-  /* ================================== */
 
 }
 

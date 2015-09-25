@@ -88,7 +88,6 @@ main (void)
   /* Initialize ourselves as a thread so we can use locks,
      then enable console locking. */
   thread_init ();
-  printf("Daegeun debug : [init] <1>after thread_init\n");
   console_init ();  
 
   /* Greet user. */
@@ -117,11 +116,8 @@ main (void)
 #endif
 
   /* Start thread scheduler and enable interrupts. */
-  printf("Daegeun debug : [init] <2>before thread_start\n");
   thread_start ();
-  printf("Daegeun debug : [init] <3>after thread_start\n");
   serial_init_queue ();
-  printf("Daegeun debug : [init] <4>before timer_calibrate\n");
   timer_calibrate ();
 
 #ifdef FILESYS
