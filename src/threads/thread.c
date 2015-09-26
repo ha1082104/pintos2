@@ -277,8 +277,9 @@ thread_unblock (struct thread *t)
 {
   enum intr_level old_level;
   struct thread *cur = thread_current();
-  /* temp ==================== */
+  /* 01  ==================== */
   struct thread *tt;
+  /* ======================== */
 
   ASSERT (is_thread (t));
 
@@ -290,24 +291,21 @@ thread_unblock (struct thread *t)
 	  list_push_front(&ready_list, &t->elem);
 	  t->status = THREAD_READY;
 	  tt = list_entry(list_max(&ready_list, priority_left_low, NULL), struct thread, elem);
-	  printf("*****Debug: [thread_unblock] before yield. current: '%s : %d's, to '%s : %d'\n", cur->name, cur->priority, tt->name, tt->priority);
 	  thread_yield();
-	  printf("*****Debug: [thread_unblock] after yield. current: '%s'\n", thread_current()->name);
 	  intr_set_level(old_level);
   }
   else {
 	  list_push_back(&ready_list, &t->elem);
-//	  list_insert_ordered(&ready_list, &t->elem, priority_left_high, NULL);
+      //list_insert_ordered(&ready_list, &t->elem, priority_left_high, NULL);
 	  t->status = THREAD_READY;
 	  intr_set_level(old_level);
   }
   /* ========================== */	  
 
   /* ===========original ================= */
-/*  list_push_back (&ready_list, &t->elem);
+  /*  list_push_back (&ready_list, &t->elem);
   t->status = THREAD_READY;
-  intr_set_level (old_level);
-  */
+  intr_set_level (old_level);*/
   /* ===================================== */
 }
 
@@ -378,11 +376,12 @@ thread_yield (void)
   old_level = intr_disable ();
   if (cur != idle_thread) 
 	  /* 01 ================== */
-//	  list_insert_ordered(&ready_list, &cur->elem, priority_left_high, NULL);
+      //list_insert_ordered(&ready_list, &cur->elem, priority_left_high, NULL);
 	  /* ===================== */
-  /*===========original============*/
-    list_push_back (&ready_list, &cur->elem);
 
+      /* original =============*/
+      list_push_back (&ready_list, &cur->elem);
+      /* ======================*/
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -409,7 +408,7 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
-	/* 01 ===================== */
+  /* 01 ======================= */
   enum intr_level old_level;
   struct thread *t;
   /* ========================== */

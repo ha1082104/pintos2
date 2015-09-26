@@ -69,7 +69,7 @@ sema_down (struct semaphore *sema)
   while (sema->value == 0) 
     {
 		/* 01 ================== */
-//		list_insert_ordered(&sema->waiters, &thread_current()->elem, priority_left_high, NULL);
+        //list_insert_ordered(&sema->waiters, &thread_current()->elem, priority_left_high, NULL);
 		/* ===================== */	
 		list_push_back (&sema->waiters, &thread_current ()->elem);
       thread_block ();
@@ -116,19 +116,26 @@ sema_up (struct semaphore *sema)
   ASSERT (sema != NULL);
 
   old_level = intr_disable ();
+  /* 01 ===================== */
+  sema->value++;
+  intr_set_level(old_level);
+  /* ======================== */
+
   if (!list_empty (&sema->waiters)) 
+
     /* 01 ===================================================== */
-//	printf("Jiyeon debug [sema_up] before pop : %d", list_size(&sema->waiters));
 	thread_unblock(list_entry(list_pop_max(&sema->waiters,priority_left_low, NULL),
 			struct thread, elem));
-//	printf("Jiyeon debug [sema_up] after  pop : %d", list_size(&sema->waiters));
 	/* ======================================================== */
+
+
 	/* original =============================================== */
-//	thread_unblock (list_entry (list_pop_front (&sema->waiters),
-   //                             struct thread, elem));
-    /* ======================================================== */
+	/*thread_unblock (list_entry (list_pop_front (&sema->waiters),
+                                struct thread, elem));
   sema->value++;
-  intr_set_level (old_level);
+  intr_set_level(old_level);
+  */
+  /* ========================================================== */
 }
 
 static void sema_test_helper (void *sema_);
@@ -307,7 +314,7 @@ cond_wait (struct condition *cond, struct lock *lock)
   
   sema_init (&waiter.semaphore, 0);
   /* 01 ================== */
-//  list_insert_ordered(&cond->waiters, &waiter.elem, priority_left_high, NULL);
+  //list_insert_ordered(&cond->waiters, &waiter.elem, priority_left_high, NULL);
   /* ===================== */
 
   list_push_back (&cond->waiters, &waiter.elem);
