@@ -515,7 +515,9 @@ struct list_elem * list_pop_max (struct list *list, list_less_func *less, void *
 			if(less(max,e,aux))
 				max = e;
 	}
+//	printf("Jiyeon debug [list_pop_max] : before remove size is %d", list_size(list));
 	list_remove(max);
+//	printf("Jiyeon debug [list_pop_max] : after  remove size is %d", list_size(list));
 	return max;
 }
 

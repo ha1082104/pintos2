@@ -147,6 +147,7 @@ int thread_get_load_avg (void);
 
 /* 01 ================================== */
 bool priority_left_high(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
+bool priority_left_low(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
 /* ===================================== */
 
 #endif /* threads/thread.h */

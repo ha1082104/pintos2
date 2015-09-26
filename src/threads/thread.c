@@ -277,6 +277,8 @@ thread_unblock (struct thread *t)
 {
   enum intr_level old_level;
   struct thread *cur = thread_current();
+  /* temp ==================== */
+  struct thread *tt;
 
   ASSERT (is_thread (t));
 
@@ -287,7 +289,10 @@ thread_unblock (struct thread *t)
   if ((cur!=idle_thread)&&(cur -> priority)<(t->priority)){ 
 	  list_push_front(&ready_list, &t->elem);
 	  t->status = THREAD_READY;
+	  tt = list_entry(list_max(&ready_list, priority_left_low, NULL), struct thread, elem);
+	  printf("*****Debug: [thread_unblock] before yield. current: '%s : %d's, to '%s : %d'\n", cur->name, cur->priority, tt->name, tt->priority);
 	  thread_yield();
+	  printf("*****Debug: [thread_unblock] after yield. current: '%s'\n", thread_current()->name);
 	  intr_set_level(old_level);
   }
   else {
@@ -576,7 +581,7 @@ next_thread_to_run (void)
 	  /* 01 ========================== */
 	  return list_entry (list_pop_max (&ready_list, priority_left_low, NULL), struct thread, elem);
 	  /* ============================= */
-//    return list_entry (list_pop_front (&ready_list), struct thread, elem);
+      //return list_entry (list_pop_front (&ready_list), struct thread, elem);
 }
 
 /* Completes a thread switch by activating the new thread's page
