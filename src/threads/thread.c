@@ -254,6 +254,21 @@ bool priority_left_high(const struct list_elem *a, const struct list_elem *b, vo
 		return false;
 	}
 }
+
+bool priority_left_low(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED){
+     struct thread *t1;
+     struct thread *t2;
+     t1 = list_entry(a, struct thread, elem);
+     t2 = list_entry(b, struct thread, elem);
+     if((t1->priority)<(t2->priority)){
+         return true;
+     }
+     else{
+         return false;
+     }
+}
+
+
 /* ============================ */
 
 
@@ -275,14 +290,9 @@ thread_unblock (struct thread *t)
 	  thread_yield();
 	  intr_set_level(old_level);
   }
-/*  else if (cur==idle_thread){
-	  list_push_back(&ready_list, &t->elem);
-	  t->status = THREAD_READY;
-	  intr_set_level(old_level);
-  }
-*/
   else {
-	  list_insert_ordered(&ready_list, &t->elem, priority_left_high, NULL);
+	  list_push_back(&ready_list, &t->elem);
+//	  list_insert_ordered(&ready_list, &t->elem, priority_left_high, NULL);
 	  t->status = THREAD_READY;
 	  intr_set_level(old_level);
   }
@@ -363,10 +373,11 @@ thread_yield (void)
   old_level = intr_disable ();
   if (cur != idle_thread) 
 	  /* 01 ================== */
-	  list_insert_ordered(&ready_list, &cur->elem, priority_left_high, NULL);
+//	  list_insert_ordered(&ready_list, &cur->elem, priority_left_high, NULL);
 	  /* ===================== */
   /*===========original============*/
-//    list_push_back (&ready_list, &cur->elem);
+    list_push_back (&ready_list, &cur->elem);
+
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -393,7 +404,23 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
+	/* 01 ===================== */
+  enum intr_level old_level;
+  struct thread *t;
+  /* ========================== */
+
   thread_current ()->priority = new_priority;
+
+  /* 01 ======================= */
+  t = list_entry(list_max(&ready_list, priority_left_low, NULL), struct thread, elem);
+  if ((t->priority)>new_priority){
+	  old_level = intr_disable();
+	  thread_yield();
+	  intr_set_level(old_level);
+  }
+  /* ========================= */
+
+  
 }
 
 /* Returns the current thread's priority. */
@@ -546,7 +573,10 @@ next_thread_to_run (void)
   if (list_empty (&ready_list))
     return idle_thread;
   else
-    return list_entry (list_pop_front (&ready_list), struct thread, elem);
+	  /* 01 ========================== */
+	  return list_entry (list_pop_max (&ready_list, priority_left_low, NULL), struct thread, elem);
+	  /* ============================= */
+//    return list_entry (list_pop_front (&ready_list), struct thread, elem);
 }
 
 /* Completes a thread switch by activating the new thread's page
@@ -593,7 +623,6 @@ thread_schedule_tail (struct thread *prev)
       ASSERT (prev != cur);
       palloc_free_page (prev);
     }
- // printf("Daegeun debug : in thread_schedule_tail. current thread : %s, schedule_tail pass\n", thread_current()->name);
 }
 
 /* Schedules a new process.  At entry, interrupts must be off and
@@ -617,7 +646,6 @@ schedule (void)
   if (cur != next)
     prev = switch_threads (cur, next);
   thread_schedule_tail (prev);
-  //printf("Daegeun debug : in schedule function. current thread : %s,  schedule pass\n", thread_current()->name);
 }
 
 /* Returns a tid to use for a new thread. */
