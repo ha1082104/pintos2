@@ -96,7 +96,7 @@ struct thread
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
-	/* 01 new ================ */
+	/* 01 ==================== */
 	struct list_elem sleep_elem;		/* List element for sleep_wait_list*/
 	int64_t wakeup_ticks;				/* time to wake up */
 	struct list my_locks;				/* List of locks that the thread hold */
