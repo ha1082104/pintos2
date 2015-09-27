@@ -97,11 +97,11 @@ struct thread
     struct list_elem elem;              /* List element. */
 
 	/* 01 new ================ */
-	struct list_elem sleep_elem;		/* Sleep list element */
+	struct list_elem sleep_elem;		/* List element for sleep_wait_list*/
 	int64_t wakeup_ticks;				/* time to wake up */
-	struct list my_locks;
-	int ori_priority;
-	struct lock *presser_lock;
+	struct list my_locks;				/* List of locks that the thread hold */
+	int ori_priority;					/* Original priority */
+	struct lock *presser_lock;			/* Lock that blocked the thread */
 	/* ======================= */
 
 
@@ -144,9 +144,9 @@ void thread_foreach (thread_action_func *, void *);
 
 int thread_get_priority (void);
 void thread_set_priority (int);
-/* 01 ================================= */
+/* 01 =============================================================== */
 void thread_set_eff_priority(struct thread *target, int new_priority);
-/* ==================================== */
+/* ================================================================== */
 
 
 int thread_get_nice (void);
@@ -155,9 +155,10 @@ int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
 
-/* 01 ================================== */
+/* 01 ======================================================================================== */
 bool priority_left_high(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
 bool priority_left_low(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
-/* ===================================== */
+bool wakeup_left_low(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
+/* =========================================================================================== */
 
 #endif /* threads/thread.h */

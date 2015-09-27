@@ -504,9 +504,8 @@ list_max (struct list *list, list_less_func *less, void *aux)
   return max;
 }
 
-/* 01 ===================== */
-struct list_elem * list_pop_max (struct list *list, list_less_func *less, void *aux)
-{
+/* 01 ============================================================================ */
+struct list_elem * list_pop_max (struct list *list, list_less_func *less, void *aux){
 	struct list_elem *max = list_begin (list);
 	if (max != list_end(list))
 	{
@@ -515,13 +514,10 @@ struct list_elem * list_pop_max (struct list *list, list_less_func *less, void *
 			if(less(max,e,aux))
 				max = e;
 	}
-//	printf("Jiyeon debug [list_pop_max] : before remove size is %d", list_size(list));
 	list_remove(max);
-//	printf("Jiyeon debug [list_pop_max] : after  remove size is %d", list_size(list));
 	return max;
 }
-
-/* ======================== */
+/* ============================================================================== */
 
 /* Returns the element in LIST with the smallest value according
    to LESS given auxiliary data AUX.  If there is more than one

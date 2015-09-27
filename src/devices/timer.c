@@ -32,7 +32,7 @@ static void real_time_delay (int64_t num, int32_t denom);
 
 
 /* 01 =========================== */
-struct list sleep_wait_list;
+struct list sleep_wait_list;		/* list for sleeping threads */
 /* ============================== */
 
 /* Sets up the timer to interrupt TIMER_FREQ times per second,
@@ -42,7 +42,9 @@ timer_init (void)
 {
   pit_configure_channel (0, 2, TIMER_FREQ);
   intr_register_ext (0x20, timer_interrupt, "8254 Timer");
+  /* 01 ======================== */
   list_init(&sleep_wait_list);
+  /* =========================== */
 }
 
 /* Calibrates loops_per_tick, used to implement brief delays. */
@@ -96,38 +98,15 @@ void
 timer_sleep (int64_t ticks) 
 {
   /* 01 ============================ */
-  /*struct sleep_state go_to_sleep;
-  enum intr_level old_level;*/
-  /* =============================== */
-
-  /* 01 new ======================== */
   enum intr_level old_level;
   /* =============================== */
-
   int64_t start = timer_ticks ();
 
   ASSERT (intr_get_level () == INTR_ON);
-
-/*
-  while(timer_elapsed(start)<ticks)
-	  thread_yield();*/
   /* 01 ============================= */
-  /*old_level = intr_disable();
-  go_to_sleep.t = thread_current();
-  go_to_sleep.wakeup_ticks = (start + ticks);
-
-  list_push_back (&sleep_wait_list, &(go_to_sleep.sleep_elem));
-
-  thread_block();
-  intr_set_level (old_level);*/
-  /* ================================ */
-
-  /* 01 new ========================= */
   old_level = intr_disable();
   thread_current()->wakeup_ticks = (start + ticks);
-  list_insert_ordered(&sleep_wait_list, &(thread_current()->sleep_elem), priority_left_high, NULL);
-//  list_push_back(&sleep_wait_list, &(thread_current()->sleep_elem));
- 
+  list_insert_ordered(&sleep_wait_list, &(thread_current()->sleep_elem), wakeup_left_low, NULL);
   thread_block();
   intr_set_level (old_level);
   /* ================================ */
@@ -207,41 +186,22 @@ timer_print_stats (void)
 static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
-  /* 01 ============================ */
-  /*struct list_elem *e;
-  struct sleep_state *ss;
-
-  for (e = list_begin (&sleep_wait_list); e != list_end(&sleep_wait_list); e = list_next(e)){
-	  ss = list_entry (e, struct sleep_state, sleep_elem);
-	  if(ss->wakeup_ticks < timer_ticks()){
-		  thread_unblock(ss->t);
-	  }
-  }*/
-  /* =============================== */
-
-  /* 01 new ======================== */
+  /* 01 ==================================================================================== */
   struct list_elem *e;
   struct thread *t;
   enum intr_level old_level;
 
-//  old_level = intr_disable();
-
   ticks++;
 
- for (e = list_begin (&sleep_wait_list); e != list_end(&sleep_wait_list); e = list_next(e)){
+  for (e = list_begin (&sleep_wait_list); e != list_end(&sleep_wait_list); e = list_next(e)){
 	  t = list_entry(e, struct thread, sleep_elem);
-	  if(t->wakeup_ticks <= timer_ticks()){
-		  
+	  if(t->wakeup_ticks <= ticks){
 		  list_remove(e);
 		  thread_unblock(t);
 	  }
   }
-// intr_set_level(old_level);
-  /* =============================== */
-
-
+  /* ======================================================================================= */
   thread_tick ();
-
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
