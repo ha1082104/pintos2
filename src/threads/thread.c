@@ -38,7 +38,7 @@ static struct thread *initial_thread;
 static struct lock tid_lock;
 
 /* 01 ============================= */
-static struct lock set_lock;
+static struct lock set_lock;	/* Lock used by thread_set_priority()  */
 /* ================================ */
 
 
