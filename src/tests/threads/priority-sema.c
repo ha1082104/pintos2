@@ -32,9 +32,9 @@ test_priority_sema (void)
 
   for (i = 0; i < 10; i++) 
     {
-	  //printf("*****Debug: [test_priority_sema] before sema up, wait list size : %d, sema value : %u\n", list_size(&(sema.waiters)), sema.value);
+	  printf("*****Debug: [test_priority_sema] before sema up, wait list size : %d, sema value : %u\n", list_size(&(sema.waiters)), sema.value);
       sema_up (&sema);
-	  //printf("*****Debug: [test_priority_sema] after  sema up, wait list size : %d, sema value : %u\n", list_size(&(sema.waiters)), sema.value);
+	  printf("*****Debug: [test_priority_sema] after  sema up, wait list size : %d, sema value : %u\n", list_size(&(sema.waiters)), sema.value);
       msg ("Back in main thread."); 
     }
   sema_up(&sema);

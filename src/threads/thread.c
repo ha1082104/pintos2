@@ -551,6 +551,10 @@ init_thread (struct thread *t, const char *name, int priority)
   t->priority = priority;
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
+  /* 01 ================================== */
+  t->ori_priority = -1;
+  list_init(&(t->my_locks));
+  /* ===================================== */
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and

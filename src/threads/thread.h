@@ -4,6 +4,9 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+/* 01 ========== */
+#include <synch.h>
+/* ============= */
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -96,6 +99,9 @@ struct thread
 	/* 01 new ================ */
 	struct list_elem sleep_elem;		/* Sleep list element */
 	int64_t wakeup_ticks;				/* time to wake up */
+	struct list my_locks;
+	int ori_priority;
+	struct lock *presser_lock;
 	/* ======================= */
 
 
