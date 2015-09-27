@@ -283,6 +283,7 @@ thread_unblock (struct thread *t)
 
   ASSERT (is_thread (t));
 
+//  printf("*****Debug : i will unblock '%s'\n", t->name);
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
 
@@ -410,22 +411,43 @@ thread_set_priority (int new_priority)
 {
   /* 01 ======================= */
   enum intr_level old_level;
+  struct thread *cur;
   struct thread *t;
   /* ========================== */
 
-  thread_current ()->priority = new_priority;
+ // thread_current ()->priority = new_priority;
 
   /* 01 ======================= */
+  cur = thread_current();
+  if(cur->ori_priority<0)
+	  cur->priority = new_priority;
+  else
+	  cur->ori_priority = new_priority;
+
   t = list_entry(list_max(&ready_list, priority_left_low, NULL), struct thread, elem);
-  if ((t->priority)>new_priority){
+  if ((t->priority)>(cur->priority)){
 	  old_level = intr_disable();
 	  thread_yield();
 	  intr_set_level(old_level);
   }
-  /* ========================= */
-
-  
+  /* ========================= */ 
 }
+
+/* 01 ========================= */
+void thread_set_eff_priority(struct thread *target, int new_priority){
+	enum intr_level old_level;
+	struct thread *t;
+
+	target->priority = new_priority;
+
+	t = list_entry(list_max(&ready_list, priority_left_low, NULL), struct thread, elem);
+	if ((t->priority)>new_priority){
+		old_level = intr_disable();
+		thread_yield();
+		intr_set_level(old_level);
+	}
+}
+/* ============================ */
 
 /* Returns the current thread's priority. */
 int
