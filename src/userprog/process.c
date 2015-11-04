@@ -17,6 +17,10 @@
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+/* 02 ==================== */
+#include "threads/malloc.h"
+#include "userprog/syscall.h"
+/* ======================= */
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -26,23 +30,46 @@ static bool load (const char *cmdline, void (**eip) (void), void **esp);
    before process_execute() returns.  Returns the new process's
    thread id, or TID_ERROR if the thread cannot be created. */
 tid_t
-process_execute (const char *file_name) 
+process_execute (const char *exec_input) //original (const char *file_name) 
 {
   char *fn_copy;
   tid_t tid;
+  /* 02 ============================ */
+  // parse file name
+  char *file_name, *token, *save_ptr;
+  char exec_parse[strlen(exec_input)+1];
 
+  struct thread* cur = thread_current();
+  memcpy(exec_parse, exec_input, (size_t)(strlen(exec_input)+1));
+  token = strtok_r(exec_parse, " ", &save_ptr);
+  file_name = token;
+  /* =============================== */
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
   fn_copy = palloc_get_page (0);
   if (fn_copy == NULL)
     return TID_ERROR;
-  strlcpy (fn_copy, file_name, PGSIZE);
+  /* original ====================== */
+  //strlcpy (fn_copy, file_name, PGSIZE);
+  /* =============================== */
+
+  /* 02 ============================ */
+  strlcpy(fn_copy, exec_input, PGSIZE);
+  /* =============================== */
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
-  return tid;
+
+  /* 02 ============================ */
+  sema_down(&(find_child(tid, cur)->load_sema));
+  return find_child(tid, cur)->load_success;
+  /* =============================== */
+
+  /* original ====================== */
+  //return tid;
+  /* =============================== */
 }
 
 /* A thread function that loads a user process and starts it
@@ -50,9 +77,36 @@ process_execute (const char *file_name)
 static void
 start_process (void *file_name_)
 {
-  char *file_name = file_name_;
+  /* original ====================== */
+  //char *file_name = file_name_;
+  /* =============================== */
   struct intr_frame if_;
   bool success;
+  /* 02 ============================ */
+  char *temp_name = file_name_;
+  char *file_name;
+  int arg_num = 0;
+  int tot_arg_len = 0;
+  int i;
+  int temp, word_align;
+  char *token, *save_ptr;
+  char *arg_arr[32], *adr_arr[33];
+  char **arg_start;
+  struct thread* cur;
+  cur = thread_current();
+  /* =============================== */
+
+  /* 02 ============================ */
+  // tokenize arguments
+  file_name = strtok_r(temp_name, " ", &save_ptr);
+  token = file_name;
+  while(token){
+	  ASSERT(arg_num<32);
+	  arg_arr[arg_num] = token;
+	  arg_num++;
+	  token = strtok_r(NULL, " ", &save_ptr);
+  }
+  /* =============================== */
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
@@ -61,10 +115,60 @@ start_process (void *file_name_)
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = load (file_name, &if_.eip, &if_.esp);
 
+  /* 02 ============================ */
+  if(success){
+	  // push argument values
+	  for(i = (arg_num-1); i>=0; i--){
+		  temp = strlen(arg_arr[i])+1;
+		  tot_arg_len += temp;
+		  if_.esp -= temp;
+		  memcpy(if_.esp, arg_arr[i], (size_t)temp);
+		  adr_arr[i] = (char *)if_.esp;
+	  }
+
+	  // word align
+	  word_align = (4-(tot_arg_len%4))%4;
+	  if_.esp -= word_align;
+	  memset(if_.esp, 0, (size_t)word_align);
+
+	  // push null point sentinel
+	  adr_arr[arg_num] = NULL;
+
+	  // push address of arguments(word aligned)
+	  for(i = arg_num; i>=0; i--){
+		  if_.esp -= 4;
+		  memcpy(if_.esp, &(adr_arr[i]), 4);
+	  }
+
+	  // push argv
+	  arg_start = (char**)if_.esp;
+	  if_.esp -= 4;
+	  memcpy(if_.esp, &arg_start, 4);
+
+	  // push argc
+	  if_.esp -= 4;
+	  memcpy(if_.esp, &arg_num, 4);
+
+	  // push fake return address
+	  if_.esp -= 4;
+	  memset(if_.esp, 0, 4);
+  }
+  palloc_free_page(file_name_);
+  /* ============================== */
+
+  /* original ===================== */
   /* If load failed, quit. */
-  palloc_free_page (file_name);
-  if (!success) 
+  //palloc_free_page (file_name);
+  /* ============================== */
+  
+  if (!success){
+	/* 02 ========================= */
+	find_child(cur->tid, cur->parent)->load_success = TID_ERROR;
+	sema_up(&(find_child(cur->tid, cur->parent)->load_sema));
+	/* ============================ */
     thread_exit ();
+  }
+  sema_up(&(find_child(cur->tid, cur->parent)->load_sema));
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -88,7 +192,29 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  return -1;
+  /* 02 =================================== */
+  struct thread* cur;
+  struct id_card* child_id_card;
+
+  cur = thread_current();
+  child_id_card = find_child(child_tid, cur);
+
+  if(child_id_card == NULL) return -1;
+  if(child_id_card->hospice) return -1;
+
+  lock_acquire(&child_id_card->hospice_lock);
+  child_id_card->hospice++;
+  lock_release(&child_id_card->hospice_lock);
+
+  if(!child_id_card->is_alive) return child_id_card->exit_status;
+
+  while(find_child(child_tid, cur)->is_alive) {}
+  return child_id_card->exit_status;
+  /* ====================================== */
+
+  /* original ============================= */
+  //return -1;
+  /* ====================================== */
 }
 
 /* Free the current process's resources. */
@@ -97,6 +223,14 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
+
+  /* 02 =================================== */
+  struct file* file = cur->fd_table[0];
+  file_close(file);
+  //if(file != NULL) file_allow_write(file);
+  cur->fd_table[0] = NULL;
+  /* ====================================== */
+
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -309,10 +443,16 @@ load (const char *file_name, void (**eip) (void), void **esp)
   *eip = (void (*) (void)) ehdr.e_entry;
 
   success = true;
+  /* 02 ============================== */
+  file_deny_write(file);
+  t->fd_table[0] = file;
+  /* ================================= */
 
  done:
   /* We arrive here whether the load is successful or not. */
-  file_close (file);
+  /* original ======================== */
+  //file_close (file);
+  /* ================================= */
   return success;
 }
 

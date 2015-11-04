@@ -5,7 +5,11 @@
 #include <list.h>
 #include <stdint.h>
 /* 01 ========== */
-#include <synch.h>
+#include "threads/synch.h"
+/* ============= */
+
+/* 02 ========== */
+#include "filesys/file.h"
 /* ============= */
 
 /* States in a thread's life cycle. */
@@ -83,6 +87,20 @@ typedef int tid_t;
    only because they are mutually exclusive: only a thread in the
    ready state is on the run queue, whereas only a thread in the
    blocked state is on a semaphore wait list. */
+
+/* 02 ======================== */
+struct id_card{
+	tid_t tid;
+	int exit_status;
+	int is_alive;
+	int hospice;
+	struct lock hospice_lock;
+	struct list_elem child_elem;
+	tid_t load_success;
+	struct semaphore load_sema;
+};
+/* =========================== */
+
 struct thread
   {
     /* Owned by thread.c. */
@@ -103,7 +121,12 @@ struct thread
 	int ori_priority;					/* Original priority */
 	struct lock *presser_lock;			/* Lock that blocked the thread */
 	/* ======================= */
-
+	/* 02 ==================== */
+	int exit_status; 
+	struct file* fd_table[128];			/* File descripter table */
+	struct thread* parent;				/* Parent thread */
+	struct list children_id_card;		/* List of all (die or alive) children's id_card */
+	/* ======================= */
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
@@ -159,6 +182,12 @@ int thread_get_load_avg (void);
 bool priority_left_high(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
 bool priority_left_low(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
 bool wakeup_left_low(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
+/* =========================================================================================== */
+/* 02 ======================================================================================== */
+int put_fd_table(struct file*);
+struct file* get_fd_table(int);
+void del_fd_table(int);
+struct id_card* find_child(tid_t, struct thread*);
 /* =========================================================================================== */
 
 #endif /* threads/thread.h */

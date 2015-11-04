@@ -13,6 +13,9 @@
 #include "threads/vaddr.h"
 #ifdef USERPROG
 #include "userprog/process.h"
+/* 02 ======================= */
+#include "threads/malloc.h"
+/* ========================== */
 #endif
 
 /* Random value for struct thread's `magic' member.
@@ -180,6 +183,11 @@ thread_create (const char *name, int priority,
   tid_t tid;
   enum intr_level old_level;
 
+  /* 02 ====================== */
+  struct id_card* child_id_card;
+  struct thread* cur;
+  /* ========================= */
+
   ASSERT (function != NULL);
 
   /* Allocate thread. */
@@ -212,6 +220,23 @@ thread_create (const char *name, int priority,
   sf->ebp = 0;
 
   intr_set_level (old_level);
+
+  /* 02 ====================== */
+  cur = thread_current();
+  (t->parent) = cur;
+
+  child_id_card = malloc(sizeof(struct id_card));
+
+  child_id_card->exit_status = -1;
+  child_id_card->is_alive = 1;
+  child_id_card->tid = t->tid;
+  child_id_card->hospice = 0;
+  lock_init(&child_id_card->hospice_lock);
+  child_id_card->load_success = tid;
+  sema_init(&child_id_card->load_sema, 0);
+
+  list_push_front(&(cur->children_id_card), &(child_id_card->child_elem));
+  /* ========================= */
 
   /* Add to run queue. */
   thread_unblock (t);
@@ -355,12 +380,50 @@ thread_tid (void)
   return thread_current ()->tid;
 }
 
+/* 02 ===================================== */
+struct id_card* find_child(tid_t tid, struct thread* parent){
+	struct list_elem* e;
+	struct id_card* idc;
+
+	if(list_empty(&(parent->children_id_card))) return NULL;
+	e = list_begin(&parent->children_id_card);
+	while(e!=NULL){
+		idc = list_entry(e, struct id_card, child_elem);
+		if((idc->tid) == tid) return idc;
+		e = list_next(e);
+	}
+	return NULL;
+}
+/* ======================================== */
+
 /* Deschedules the current thread and destroys it.  Never
    returns to the caller. */
 void
 thread_exit (void) 
 {
+  /* 02 ====================== */
+  struct thread* cur;
+  struct thread* parent;
+  struct list_elem* e;
+  struct id_card* idc;
+  /* ========================= */
   ASSERT (!intr_context ());
+  /* 02 ====================== */
+  cur = thread_current();
+  parent = cur->parent;
+
+  // If current thread die before children die, free child's id_card
+  while(!list_empty(&cur->children_id_card)){
+	  e = list_pop_front(&cur->children_id_card);
+	  free(list_entry(e, struct id_card, child_elem));
+  }
+
+  if(parent){
+	  idc = find_child(cur->tid, parent);
+	  idc->exit_status = cur->exit_status;
+	  idc->is_alive = 0;
+  }
+  /* ========================= */
 
 #ifdef USERPROG
   process_exit ();
@@ -580,6 +643,11 @@ init_thread (struct thread *t, const char *name, int priority)
   t->ori_priority = -1;
   list_init(&(t->my_locks));
   /* ===================================== */
+
+  /* 02 ================================== */
+  t->exit_status = -1;
+  list_init(&(t->children_id_card));
+  /* ===================================== */
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
@@ -697,3 +765,27 @@ allocate_tid (void)
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
+
+/* 02 ===================================== */
+int put_fd_table(struct file* f){
+	int i = 2;
+	struct thread* cur;
+
+	cur = thread_current();
+	while(((cur->fd_table)[i]!=NULL) && i<128) i++;
+	if(i==128) return -1; // fd_table full
+
+	cur->fd_table[i] = f;
+	return i;
+}
+
+struct file* get_fd_table(int fd){
+	if(fd<2) return NULL;
+	if(fd>127) return NULL;
+	return (thread_current()->fd_table)[fd];
+}
+
+void del_fd_table(int fd){
+	(thread_current()->fd_table)[fd] = NULL;
+}
+/* ======================================== */

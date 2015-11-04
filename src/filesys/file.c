@@ -9,6 +9,9 @@ struct file
     struct inode *inode;        /* File's inode. */
     off_t pos;                  /* Current position. */
     bool deny_write;            /* Has file_deny_write() been called? */
+	/* 02 ========================== */
+	bool writing;				/* Someone is writing the file now */
+	/* ============================= */
   };
 
 /* Opens a file for the given INODE, of which it takes ownership,
@@ -23,6 +26,9 @@ file_open (struct inode *inode)
       file->inode = inode;
       file->pos = 0;
       file->deny_write = false;
+	  /* 02 ========================= */
+	  file->writing = false;
+	  /* ============================ */
       return file;
     }
   else
@@ -166,3 +172,26 @@ file_tell (struct file *file)
   ASSERT (file != NULL);
   return file->pos;
 }
+
+
+/* 02 ==================================== */
+int file_get_size(struct file *file){
+	return inode_length(file->inode);
+}
+
+bool file_is_reading(struct file *file){
+	return (file->deny_write);
+}
+
+int file_readers(struct file *file){
+	return inode_deny_cnt(file->inode);
+}
+
+bool file_is_writing(struct file *file){
+	return (file->writing);
+}
+
+void file_set_writing(struct file *file, bool status){
+	(file->writing) = status;
+}
+/* ======================================= */

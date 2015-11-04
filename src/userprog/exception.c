@@ -4,6 +4,9 @@
 #include "userprog/gdt.h"
 #include "threads/interrupt.h"
 #include "threads/thread.h"
+/* 02 ==================== */
+#include "userprog/syscall.h"
+/* ======================= */
 
 /* Number of page faults processed. */
 static long long page_fault_cnt;
@@ -127,6 +130,9 @@ page_fault (struct intr_frame *f)
   bool user;         /* True: access by user, false: access by kernel. */
   void *fault_addr;  /* Fault address. */
 
+  /* 02 =================================== */
+  syscall_exit(-1);
+  /* ====================================== */
   /* Obtain faulting address, the virtual address that was
      accessed to cause the fault.  It may point to code or to
      data.  It is not necessarily the address of the instruction
